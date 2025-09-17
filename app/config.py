@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = Field(default="openai")
     OPENAI_API_KEY: Optional[str] = Field(default=None)
     ANTHROPIC_API_KEY: Optional[str] = Field(default=None)
+    GEMINI_API_KEY: Optional[str] = Field(default=None)
+    GOOGLE_API_KEY: Optional[str] = Field(default=None)
 
     # File Storage
     DATA_DIR: str = Field(default="./data")
