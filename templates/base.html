@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MemoraBot{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/main.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

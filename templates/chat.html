@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}MemoraBot - Chat{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <header class="chat-header">
+        <h1>🗂️ MemoraBot</h1>
+        <p>Your AI File & Note Assistant</p>
+    </header>
+
+    <div class="chat-messages" id="chat-messages">
+        <div class="message assistant">
+            <div class="message-content">
+                Hello! I'm MemoraBot, your intelligent file and note assistant.
+                I can help you organize, manage, and interact with your files through natural language.
+                What would you like to do today?
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-input-container">
+        <textarea
+            id="message-input"
+            class="message-input"
+            placeholder="Type your message here..."
+            rows="3"
+        ></textarea>
+        <button id="send-button" class="send-button">Send</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', path='/js/chat.js') }}"></script>
+{% endblock %}
