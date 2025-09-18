@@ -137,7 +137,8 @@ organized and easily accessible."""
             ctx: RunContext[AgentDependencies],
             bucket: str,
             filename: str,
-            content: str
+            content: str,
+            overwrite: bool = False
         ) -> str:
             """Write content to a new file in a bucket.
 
@@ -145,6 +146,7 @@ organized and easily accessible."""
                 bucket: The bucket (folder) name
                 filename: The file name to create
                 content: Content to write to the file
+                overwrite: If True, overwrite existing file
 
             Returns:
                 Confirmation message
@@ -152,9 +154,9 @@ organized and easily accessible."""
             from app.tools import FileTools
 
             tools = FileTools(ctx.deps.data_dir)
-            result = tools.write_file(bucket, filename, content)
+            result = tools.write_file(bucket, filename, content, overwrite=overwrite)
 
-            logger.info(f"Created file: {bucket}/{filename}")
+            logger.info(f"Created/overwrote file: {bucket}/{filename}")
             return result
 
         @self.agent.tool
@@ -162,7 +164,8 @@ organized and easily accessible."""
             ctx: RunContext[AgentDependencies],
             bucket: str,
             filename: str,
-            content: str
+            content: str,
+            separator: str = "\n\n"
         ) -> str:
             """Append content to an existing file.
 
@@ -170,6 +173,7 @@ organized and easily accessible."""
                 bucket: The bucket (folder) name
                 filename: The file name to append to
                 content: Content to append
+                separator: Separator to use when appending (default: "\\n\\n")
 
             Returns:
                 Confirmation message
@@ -177,7 +181,7 @@ organized and easily accessible."""
             from app.tools import FileTools
 
             tools = FileTools(ctx.deps.data_dir)
-            result = tools.append_file(bucket, filename, content)
+            result = tools.append_file(bucket, filename, content, separator=separator)
 
             logger.info(f"Appended to file: {bucket}/{filename}")
             return result
@@ -186,14 +190,14 @@ organized and easily accessible."""
         def list_files(
             ctx: RunContext[AgentDependencies],
             bucket: Optional[str] = None
-        ) -> List[str]:
-            """List files in a bucket or all buckets.
+        ) -> List[Dict[str, Any]]:
+            """List files in a bucket or all buckets with detailed metadata.
 
             Args:
                 bucket: Optional bucket name. If None, lists all buckets.
 
             Returns:
-                List of file paths
+                List of dictionaries with file metadata
             """
             from app.tools import FileTools
 
@@ -247,6 +251,44 @@ organized and easily accessible."""
             result = tools.delete_file(bucket, filename)
 
             logger.info(f"Deleted file: {bucket}/{filename}")
+            return result
+
+        @self.agent.tool
+        def get_bucket_stats(
+            ctx: RunContext[AgentDependencies]
+        ) -> Dict[str, Any]:
+            """Get statistics about buckets and files.
+
+            Returns:
+                Dictionary with total_buckets, total_files, total_size, and buckets info
+            """
+            from app.tools import FileTools
+
+            tools = FileTools(ctx.deps.data_dir)
+            result = tools.get_bucket_stats()
+
+            logger.info("Retrieved bucket statistics")
+            return result
+
+        @self.agent.tool
+        def list_directory(
+            ctx: RunContext[AgentDependencies],
+            path: str = ""
+        ) -> Dict[str, Any]:
+            """List directory contents for navigation.
+
+            Args:
+                path: Optional path within data directory
+
+            Returns:
+                Directory structure with buckets and files
+            """
+            from app.tools import FileTools
+
+            tools = FileTools(ctx.deps.data_dir)
+            result = tools.list_directory(path)
+
+            logger.info(f"Listed directory: {path or 'root'}")
             return result
 
     async def process_message(

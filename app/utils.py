@@ -152,17 +152,19 @@ def format_file_size(size_bytes: int) -> str:
     return f"{size_bytes:.2f} TB"
 
 
-def is_allowed_file_type(filename: str, settings) -> bool:
-    """Check if file type is allowed.
+def is_allowed_file_type(filename: str, settings=None) -> bool:
+    """Check if file type is allowed based on extension.
 
     Args:
         filename: File name to check
-        settings: Application settings
+        settings: Application settings (optional)
 
     Returns:
         True if file type is allowed
     """
-    from pathlib import Path
-    extension = Path(filename).suffix
-    allowed_extensions = getattr(settings, 'ALLOWED_FILE_TYPES', '.txt,.md,.json,.yaml').split(',')
-    return extension in allowed_extensions
+    if settings is None:
+        from app.config import settings
+
+    extension = Path(filename).suffix.lower()
+    allowed = settings.ALLOWED_FILE_TYPES.split(',')
+    return extension in allowed or not extension  # Allow no extension files
