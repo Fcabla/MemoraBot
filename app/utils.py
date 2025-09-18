@@ -2,8 +2,9 @@
 
 import re
 import hashlib
+import difflib
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from datetime import datetime
 
 
@@ -168,3 +169,163 @@ def is_allowed_file_type(filename: str, settings=None) -> bool:
     extension = Path(filename).suffix.lower()
     allowed = settings.ALLOWED_FILE_TYPES.split(',')
     return extension in allowed or not extension  # Allow no extension files
+
+
+def generate_diff(
+    original_lines: List[str],
+    modified_lines: List[str],
+    filename: str = "file"
+) -> str:
+    """Generate a unified diff showing changes.
+
+    Args:
+        original_lines: Original file lines
+        modified_lines: Modified file lines
+        filename: File name for diff header
+
+    Returns:
+        Unified diff string
+    """
+    diff = difflib.unified_diff(
+        original_lines,
+        modified_lines,
+        fromfile=f"{filename} (original)",
+        tofile=f"{filename} (modified)",
+        lineterm=""
+    )
+    return "\n".join(diff)
+
+
+def find_similar_lines(
+    content: str,
+    target_text: str,
+    similarity_threshold: float = 0.6
+) -> List[Tuple[int, str, float]]:
+    """Find lines similar to target text.
+
+    Args:
+        content: File content
+        target_text: Text to find similar content for
+        similarity_threshold: Minimum similarity score
+
+    Returns:
+        List of (line_number, line_text, similarity_score)
+    """
+    from difflib import SequenceMatcher
+
+    lines = content.split('\n')
+    similar_lines = []
+
+    for i, line in enumerate(lines, 1):
+        similarity = SequenceMatcher(None, target_text.lower(), line.lower()).ratio()
+        if similarity >= similarity_threshold:
+            similar_lines.append((i, line, similarity))
+
+    return sorted(similar_lines, key=lambda x: x[2], reverse=True)
+
+
+def extract_section_by_keywords(
+    content: str,
+    keywords: List[str],
+    context_lines: int = 3
+) -> Optional[Tuple[int, int, List[str]]]:
+    """Extract a section from content based on keywords.
+
+    Args:
+        content: File content
+        keywords: Keywords to identify the section
+        context_lines: Lines of context around matches
+
+    Returns:
+        (start_line, end_line, section_lines) or None if not found
+    """
+    lines = content.split('\n')
+
+    # Find lines containing keywords
+    matching_lines = []
+    for i, line in enumerate(lines):
+        if any(keyword.lower() in line.lower() for keyword in keywords):
+            matching_lines.append(i)
+
+    if not matching_lines:
+        return None
+
+    # Determine section boundaries
+    start_line = max(0, min(matching_lines) - context_lines)
+    end_line = min(len(lines), max(matching_lines) + context_lines + 1)
+
+    return start_line, end_line, lines[start_line:end_line]
+
+
+def smart_content_placement(
+    existing_content: str,
+    new_content: str,
+    content_type_hint: Optional[str] = None
+) -> Tuple[int, str]:
+    """Determine the best place to insert new content.
+
+    Args:
+        existing_content: Current file content
+        new_content: Content to insert
+        content_type_hint: Hint about content type ("list", "task", etc.)
+
+    Returns:
+        (line_number, reason) where to insert
+    """
+    lines = existing_content.split('\n')
+
+    # Strategies for placement
+    strategies = {
+        "list": _find_list_insertion_point,
+        "task": _find_task_insertion_point,
+        "note": _find_note_insertion_point,
+        "default": _find_default_insertion_point
+    }
+
+    strategy = strategies.get(content_type_hint, strategies["default"])
+    return strategy(lines, new_content)
+
+
+def _find_list_insertion_point(lines: List[str], new_content: str) -> Tuple[int, str]:
+    """Find best place to insert list items."""
+    # Look for existing list patterns
+    list_patterns = [r'^\s*[-\*\+]\s', r'^\s*\d+\.\s', r'^\s*•\s']
+
+    for i, line in enumerate(lines):
+        for pattern in list_patterns:
+            import re
+            if re.match(pattern, line):
+                # Find end of this list
+                for j in range(i + 1, len(lines)):
+                    if lines[j].strip() == "" or not re.match(pattern, lines[j]):
+                        return j, f"Added to existing list after line {i + 1}"
+                return len(lines), "Added to end of list"
+
+    return len(lines), "Added as new list at end of file"
+
+
+def _find_task_insertion_point(lines: List[str], new_content: str) -> Tuple[int, str]:
+    """Find best place to insert task items."""
+    # Look for task patterns like "TODO:", "- [ ]", etc.
+    task_keywords = ["todo", "task", "- [ ]", "- [x]"]
+
+    for i, line in enumerate(lines):
+        if any(keyword in line.lower() for keyword in task_keywords):
+            return i + 1, f"Added after task section at line {i + 1}"
+
+    return len(lines), "Added as new task section"
+
+
+def _find_note_insertion_point(lines: List[str], new_content: str) -> Tuple[int, str]:
+    """Find best place to insert general notes."""
+    # Look for empty lines or section breaks
+    for i in range(len(lines) - 1, -1, -1):
+        if lines[i].strip() == "":
+            return i + 1, f"Added after empty line {i + 1}"
+
+    return len(lines), "Added to end of file"
+
+
+def _find_default_insertion_point(lines: List[str], new_content: str) -> Tuple[int, str]:
+    """Default insertion strategy."""
+    return len(lines), "Added to end of file"

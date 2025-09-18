@@ -74,37 +74,52 @@ class MemoraBot:
 
     def _get_system_prompt(self) -> str:
         """Get the system prompt for the agent."""
-        return """You are MemoraBot, an intelligent file and note management assistant.
+        return """You are MemoraBot, an intelligent file and note management assistant with advanced editing capabilities.
 
 Your primary responsibilities:
 1. Help users organize their thoughts and information into well-structured files
 2. Intelligently manage files in "buckets" (categories/folders)
-3. Always search for existing relevant files before creating new ones
-4. Append to existing files when appropriate rather than creating duplicates
-5. Maintain clear file organization and naming conventions
+3. Make precise, token-efficient edits using smart tools
+4. Always search for existing relevant files before creating new ones
+5. Use contextual editing instead of rewriting entire files
+
+INTELLIGENT EDITING CAPABILITIES:
+- Use edit_file_lines() to replace specific text sections
+- Use insert_at_line() for precise line-based insertions
+- Use replace_section() for block replacements between markers
+- Use smart_append() to add content in the most logical location
+- Use preview_file_section() to understand context before editing
+- Always show diffs of what changed for transparency
+
+EDITING DECISION PROCESS:
+1. For small changes: Use edit_file_lines() or insert_at_line()
+2. For section updates: Use replace_section() with clear markers
+3. For new content: Use smart_append() with section hints
+4. For uncertain changes: Preview first, then edit precisely
+5. Avoid write_file() unless creating entirely new files
+
+TOKEN EFFICIENCY RULES:
+- Never send entire file contents unless absolutely necessary
+- Use preview tools to understand context with minimal tokens
+- Make targeted edits that affect only relevant lines
+- Provide clear diffs showing exactly what changed
+- Combine related edits in a single operation when possible
 
 Key behaviors:
-- Be concise and helpful in responses
-- Show transparency about file operations you perform
+- Be precise and surgical in your edits
+- Show transparency about what you're changing and why
 - Suggest appropriate file organization strategies
 - Remember context from the conversation
 - Proactively organize information into logical structures
 
-File operation guidelines:
-- Check if a relevant file exists before creating a new one
-- Use descriptive, searchable file names
-- Organize files into logical buckets (folders)
-- Prefer appending to existing files over creating many small files
-- Clean up and merge related content when appropriate
-
 When you perform file operations, always:
-1. Explain what you're doing and why
-2. Confirm successful operations
-3. Suggest next steps or related actions
-4. Handle errors gracefully with helpful messages
+1. Explain your editing strategy and why you chose specific tools
+2. Show diffs or clear descriptions of what changed
+3. Confirm successful operations with context
+4. Suggest next steps or related actions
+5. Handle errors gracefully with helpful messages
 
-Remember: You are a helpful assistant focused on keeping the user's information
-organized and easily accessible."""
+Remember: You are like a coding agent but for notes and documents - precise, intelligent, and token-efficient."""
 
     def _register_tools(self) -> None:
         """Register all available tools with the agent."""
@@ -289,6 +304,145 @@ organized and easily accessible."""
             result = tools.list_directory(path)
 
             logger.info(f"Listed directory: {path or 'root'}")
+            return result
+
+        @self.agent.tool
+        def edit_file_lines(
+            ctx: RunContext[AgentDependencies],
+            bucket: str,
+            filename: str,
+            search_text: str,
+            replacement_text: str
+        ) -> str:
+            """Replace specific text in a file with intelligent matching.
+
+            Args:
+                bucket: The bucket (folder) name
+                filename: The file name
+                search_text: Text to find and replace
+                replacement_text: New text to replace with
+
+            Returns:
+                Diff showing what was changed
+            """
+            from app.tools import FileTools
+
+            tools = FileTools(ctx.deps.data_dir)
+            result = tools.edit_file_lines(bucket, filename, search_text, replacement_text)
+
+            logger.info(f"Edited lines in: {bucket}/{filename}")
+            return result
+
+        @self.agent.tool
+        def insert_at_line(
+            ctx: RunContext[AgentDependencies],
+            bucket: str,
+            filename: str,
+            line_number: int,
+            text: str,
+            position: str = "after"
+        ) -> str:
+            """Insert text at a specific line number.
+
+            Args:
+                bucket: The bucket (folder) name
+                filename: The file name
+                line_number: Line number (1-based) where to insert
+                text: Text to insert
+                position: 'before', 'after', or 'replace'
+
+            Returns:
+                Success message with context
+            """
+            from app.tools import FileTools
+
+            tools = FileTools(ctx.deps.data_dir)
+            result = tools.insert_at_line(bucket, filename, line_number, text, position)
+
+            logger.info(f"Inserted at line {line_number} in: {bucket}/{filename}")
+            return result
+
+        @self.agent.tool
+        def replace_section(
+            ctx: RunContext[AgentDependencies],
+            bucket: str,
+            filename: str,
+            start_marker: str,
+            end_marker: str,
+            new_content: str
+        ) -> str:
+            """Replace content between two markers.
+
+            Args:
+                bucket: The bucket (folder) name
+                filename: The file name
+                start_marker: Text marking start of section
+                end_marker: Text marking end of section
+                new_content: New content for the section
+
+            Returns:
+                Diff showing section replacement
+            """
+            from app.tools import FileTools
+
+            tools = FileTools(ctx.deps.data_dir)
+            result = tools.replace_section(bucket, filename, start_marker, end_marker, new_content)
+
+            logger.info(f"Replaced section in: {bucket}/{filename}")
+            return result
+
+        @self.agent.tool
+        def smart_append(
+            ctx: RunContext[AgentDependencies],
+            bucket: str,
+            filename: str,
+            content: str,
+            section_hint: Optional[str] = None
+        ) -> str:
+            """Intelligently append content to the best location in the file.
+
+            Args:
+                bucket: The bucket (folder) name
+                filename: The file name
+                content: Content to append
+                section_hint: Hint about where to append (e.g., 'shopping', 'tasks')
+
+            Returns:
+                Description of where content was added
+            """
+            from app.tools import FileTools
+
+            tools = FileTools(ctx.deps.data_dir)
+            result = tools.smart_append(bucket, filename, content, section_hint)
+
+            logger.info(f"Smart append to: {bucket}/{filename}")
+            return result
+
+        @self.agent.tool
+        def preview_file_section(
+            ctx: RunContext[AgentDependencies],
+            bucket: str,
+            filename: str,
+            around_text: Optional[str] = None,
+            around_line: Optional[int] = None
+        ) -> str:
+            """Preview a section of a file for context before editing.
+
+            Args:
+                bucket: The bucket (folder) name
+                filename: The file name
+                around_text: Show context around this text
+                around_line: Show context around this line number
+
+            Returns:
+                File preview with line numbers
+            """
+            from app.tools import FileTools
+
+            tools = FileTools(ctx.deps.data_dir)
+            result = tools.get_file_preview(bucket, filename, around_line, around_text)
+
+            logger.info(f"Previewed section in: {bucket}/{filename}")
             return result
 
     async def process_message(

@@ -251,5 +251,8 @@ memorabot/
 └── specs/                # Implementation documentation
 ```
 
+### Other Considerations
+Pydantic-ai is a new library for agent development. Check the documentation if needed here: https://ai.pydantic.dev/llms.txt
+
 ### Ready for Enhancement
 The foundation is solid and ready for the next phase of intelligent file management improvements as outlined in the roadmap above.
