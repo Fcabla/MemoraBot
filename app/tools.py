@@ -278,8 +278,16 @@ class FileTools:
             # Get list of files to search
             files_to_search = self.list_files(bucket)
 
-            for file_path in files_to_search:
-                bucket_name, filename = file_path.split('/', 1)
+            for file_info in files_to_search:
+                # Extract path from file metadata dict
+                if isinstance(file_info, dict):
+                    file_path = file_info.get('path', '')
+                    bucket_name = file_info.get('bucket', '')
+                    filename = file_info.get('filename', '')
+                else:
+                    # Fallback for string paths
+                    file_path = str(file_info)
+                    bucket_name, filename = file_path.split('/', 1)
 
                 try:
                     content = self.read_file(bucket_name, filename)

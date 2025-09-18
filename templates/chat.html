@@ -2,31 +2,114 @@
 
 {% block title %}MemoraBot - Chat{% endblock %}
 
+{% block extra_head %}
+<style>
+    /* Additional inline styles for icons */
+    .icon-user::before { content: "👤"; }
+    .icon-bot::before { content: "🤖"; }
+    .icon-tool::before { content: "🔧"; }
+    .icon-file::before { content: "📄"; }
+    .icon-folder::before { content: "📁"; }
+    .icon-search::before { content: "🔍"; }
+    .icon-write::before { content: "✏️"; }
+    .icon-delete::before { content: "🗑️"; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="chat-container">
     <header class="chat-header">
-        <h1>🗂️ MemoraBot</h1>
-        <p>Your AI File & Note Assistant</p>
+        <div class="chat-header-content">
+            <h1>🗂️ MemoraBot</h1>
+            <p>Your AI File & Note Assistant</p>
+        </div>
+        <button class="theme-switcher" id="themeSwitcher" title="Toggle theme">
+            <span id="themeIcon">🌙</span>
+            <span id="themeText">Dark</span>
+        </button>
     </header>
 
-    <div class="chat-messages" id="chat-messages">
+    <div class="chat-messages" id="chatMessages">
+        <!-- Welcome message -->
         <div class="message assistant">
+            <div class="message-header">
+                <span class="message-role icon-bot">Assistant</span>
+                <span class="message-timestamp" data-timestamp="{{ current_time }}"></span>
+            </div>
             <div class="message-content">
-                Hello! I'm MemoraBot, your intelligent file and note assistant.
-                I can help you organize, manage, and interact with your files through natural language.
-                What would you like to do today?
+Hello! I'm MemoraBot, your intelligent file and note assistant. I can help you:
+
+• Create and organize notes in categorized buckets
+• Search through your existing files
+• Append information to existing notes
+• Manage your knowledge base efficiently
+
+What would you like to work on today?
             </div>
         </div>
     </div>
 
     <div class="chat-input-container">
         <textarea
-            id="message-input"
+            id="messageInput"
             class="message-input"
-            placeholder="Type your message here..."
+            placeholder="Type your message here... (Shift+Enter for new line, Enter to send)"
             rows="3"
+            autofocus
         ></textarea>
-        <button id="send-button" class="send-button">Send</button>
+        <button id="sendButton" class="send-button" type="button">
+            Send
+        </button>
+    </div>
+</div>
+
+<!-- Message Templates (hidden) -->
+<div id="templates" style="display: none;">
+    <!-- User Message Template -->
+    <div class="message user" id="userMessageTemplate">
+        <div class="message-header">
+            <span class="message-role icon-user">You</span>
+            <span class="message-timestamp" data-timestamp=""></span>
+        </div>
+        <div class="message-content"></div>
+    </div>
+
+    <!-- Assistant Message Template -->
+    <div class="message assistant" id="assistantMessageTemplate">
+        <div class="message-header">
+            <span class="message-role icon-bot">Assistant</span>
+            <span class="message-timestamp" data-timestamp=""></span>
+        </div>
+        <div class="message-content"></div>
+    </div>
+
+    <!-- Tool Call Template -->
+    <div class="tool-call" id="toolCallTemplate">
+        <div class="tool-call-header">
+            <span class="tool-call-icon"></span>
+            <span class="tool-call-name"></span>
+        </div>
+        <div class="tool-call-args"></div>
+        <div class="tool-call-result"></div>
+    </div>
+
+    <!-- Loading Template -->
+    <div class="loading-indicator" id="loadingTemplate">
+        <span>MemoraBot is thinking</span>
+        <div class="loading-dots">
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+        </div>
+    </div>
+
+    <!-- Error Message Template -->
+    <div class="message error" id="errorMessageTemplate">
+        <div class="message-header">
+            <span class="message-role">⚠️ Error</span>
+            <span class="message-timestamp" data-timestamp=""></span>
+        </div>
+        <div class="message-content"></div>
     </div>
 </div>
 {% endblock %}

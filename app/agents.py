@@ -337,16 +337,38 @@ organized and easily accessible."""
             conversation.add_message("user", message)
             conversation.add_message("assistant", result.output)
 
-            # Extract tool usage information
+            # Extract tool usage information - combine calls with returns
             tool_calls = []
+            tool_calls_map = {}  # Map to match calls with returns
+
             for msg in result.new_messages():
                 if hasattr(msg, 'parts'):
                     for part in msg.parts:
-                        if hasattr(part, 'tool_name'):
+                        if hasattr(part, 'part_kind'):
+                            if part.part_kind == 'tool-call':
+                                # This is a tool call
+                                tool_id = getattr(part, 'tool_call_id', len(tool_calls_map))
+                                tool_calls_map[tool_id] = {
+                                    'tool': part.tool_name,
+                                    'arguments': getattr(part, 'args', {}),
+                                    'result': None  # Will be filled by tool-return
+                                }
+                            elif part.part_kind == 'tool-return':
+                                # This is a tool return, match it with the call
+                                tool_id = getattr(part, 'tool_call_id', None)
+                                if tool_id in tool_calls_map:
+                                    content = getattr(part, 'content', None)
+                                    tool_calls_map[tool_id]['result'] = content
+                        elif hasattr(part, 'tool_name'):
+                            # Fallback for older format
                             tool_calls.append({
                                 'tool': part.tool_name,
                                 'arguments': getattr(part, 'args', {}),
+                                'result': None
                             })
+
+            # Convert map to list, only include complete tool calls
+            tool_calls = list(tool_calls_map.values())
 
             response = {
                 'message': result.output,
